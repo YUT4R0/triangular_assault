@@ -31,7 +31,8 @@ pygame.display.set_caption("Triangular Assault")
 
 # sound effects
 bounce_sound_effect = pygame.mixer.Sound('assets/bounce.wav')
-scoring_sound_effect = pygame.mixer.Sound('assets/258020__kodack__arcade-bleep-sound.wav')
+scoring_sound_effect = pygame.mixer.Sound('assets/scoring-sound.wav')
+die_sound_effect = pygame.mixer.Sound('assets/explode.ogg')
 
 # fonts
 game_text = pygame.font.SysFont('Arial', 72)
@@ -43,12 +44,20 @@ player_r = (
     (mid_w + REL_SIZE // 2, mid_h),
     (mid_w - REL_SIZE, mid_h + REL_SIZE)
 )
+dir = 0
 
 running = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+    # player movement
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_a:
+            dir = 0
+        elif event.key == pygame.K_d:
+            dir = 1
+
     draw_screen()
     update_screen()
 
