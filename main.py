@@ -17,40 +17,39 @@ MID_H = HEIGHT // 2
 REL_SIZE = 40
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Triangular Assault")
+
+# fonts
 hud_font = pygame.font.Font('assets/VCR_OSD_MONO_1.001.ttf', 40)
+screen_font = pygame.font.SysFont('Arial', 30)
+screen_font_bold = pygame.font.SysFont('Arial Bold', 120)
 
 # sound effects
 bounce_sound_effect = pygame.mixer.Sound('assets/bounce.wav')
 scoring_sound_effect = pygame.mixer.Sound('assets/scoring-sound.wav')
-die_sound_effect = pygame.mixer.Sound('assets/explode.ogg')
-
-# fonts
-game_text = pygame.font.SysFont('Arial', 72)
-game_text_bold = pygame.font.SysFont('Arial Bold', 72)
+death_sound_effect = pygame.mixer.Sound('assets/explode.ogg')
 
 # player
+direction = 0
 player_r = (
     (MID_W - REL_SIZE, MID_H - REL_SIZE),
     (MID_W + REL_SIZE // 2, MID_H),
     (MID_W - REL_SIZE, MID_H + REL_SIZE)
 )
-dir = 0
+player_l = (
+    (MID_W + REL_SIZE, MID_H + REL_SIZE),
+    (MID_W - REL_SIZE // 2, MID_H),
+    (MID_W + REL_SIZE, MID_H - REL_SIZE)
+)
 
-# score
+# walls
+topper = pygame.Rect(0, MID_H - (REL_SIZE * 4), WIDTH, REL_SIZE)
+bottom = pygame.Rect(0, MID_H + (REL_SIZE * 3), WIDTH, REL_SIZE)
+
+# initial hud stats
 score = 0
-score_text = hud_font.render('SCORE: 0', True, WHITE, BLACK)
-
-# lives
 life = 3
-life_text = hud_font.render('LIFE: 0', True, WHITE, BLACK)
-
-# wave
-wave = 1
-wave_text = hud_font.render('WAVE: 1', True, WHITE, BLACK)
-
-# combo
+wave = 0
 combo = 0
-combo_text = hud_font.render('COMBO: 0', True, WHITE, BLACK)
 
 
 def update_screen():
@@ -58,28 +57,99 @@ def update_screen():
     pygame.time.Clock().tick(60)
 
 
-def draw_screen():
-    screen.fill(BLACK)
-    pygame.draw.polygon(screen, WHITE, player_r)
+def draw_hud(n_score, n_life, n_wave, n_combo):
+    score_text = hud_font.render(f'SCORE: {n_score}', True, WHITE, BLACK)
+    life_text = hud_font.render(f'LIFE: {n_life}', True, WHITE, BLACK)
+    wave_text = hud_font.render(f'WAVE: {n_wave}', True, WHITE, BLACK)
+    combo_text = hud_font.render(f'COMBO: {n_combo}', True, WHITE, BLACK)
     screen.blit(score_text, (20, 10))
     screen.blit(life_text, (WIDTH - 200, 10))
     screen.blit(combo_text, (20, 50))
     screen.blit(wave_text, (MID_W - 80, 10))
 
 
+def draw_static_screen(li):
+    # covers game drawing
+    screen.fill(BLACK, (0, MID_H - (REL_SIZE * 4), WIDTH, MID_H))
+    # title
+    title_txt = 'GAME OVER' if li <= 0 else 'TRIANGULAR ASSAULT'
+    title = screen_font_bold.render(title_txt, True, WHITE, BLACK)
+    title_w = title.get_width()
+    title_h = title.get_height()
+
+    # subtitle
+    subtitle_txt = "To play again press 'space'" if li <= 0 else "To play press 'space'"
+    subtitle = screen_font.render(subtitle_txt, True, WHITE, BLACK)
+    subtitle_w = subtitle.get_width()
+
+    # draw title and subtitle
+    screen.blit(title, (MID_W - title_w // 2, MID_H - title_h // 2))
+    screen.blit(subtitle, (MID_W - subtitle_w // 2, MID_H + title_h // 2))
+
+
+def draw_lines():
+    start_y = MID_H - (REL_SIZE * 4)
+    end_y = MID_H + (REL_SIZE * 3)
+    dot_size = 10
+    dot_space = 5
+    y = start_y
+    while y < end_y:
+        pygame.draw.line(screen, WHITE, (MID_W // 2, y), (MID_W // 2, y + dot_size))
+        pygame.draw.line(screen, WHITE, (MID_W + MID_W // 2, y), (MID_W + MID_W // 2, y + dot_size))
+        y += dot_size + dot_space
+
+
+def draw_game():
+    screen.fill(BLACK)
+    # draw scenario
+    pygame.draw.rect(screen, WHITE, topper)
+    draw_lines()
+    pygame.draw.rect(screen, WHITE, bottom)
+    # draw player
+    if direction == 0:
+        pygame.draw.polygon(screen, WHITE, player_r)
+    else:
+        pygame.draw.polygon(screen, WHITE, player_l)
+
+
+# game stats
 running = True
+game_start = False
+
 while running:
+    # event keys
+    keys = pygame.key.get_pressed()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-    # player movement
-    if event.type == pygame.KEYDOWN:
-        if event.key == pygame.K_a:
-            dir = 0
-        elif event.key == pygame.K_d:
-            dir = 1
+        elif keys[pygame.K_SPACE]:
+            game_start = True
 
-    draw_screen()
+    if game_start:
+        draw_game()
+        wave = 1
+        draw_hud(score, life, wave, combo)
+        # player movements
+        if keys[pygame.K_LEFT]:
+            direction = 1
+        if keys[pygame.K_RIGHT]:
+            direction = 0
+        # player's death
+        if life <= 0:
+            game_start = False
+            death_sound_effect.play()
+    elif life <= 0:
+        draw_static_screen(life)
+        if keys[pygame.K_SPACE]:
+            # reset stats
+            score = combo = 0
+            wave = 1
+            life = 3
+            game_start = True
+    else:
+        # draws initial stats
+        draw_static_screen(life)
+        draw_hud(score, life, wave, combo)
     update_screen()
 
 pygame.quit()
