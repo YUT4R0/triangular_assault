@@ -51,6 +51,10 @@ life = 3
 wave = 0
 combo = 0
 
+# variable trigger control
+bullets = []
+move_left = False
+shot_timer = 0
 
 def update_screen():
     pygame.display.flip()
@@ -86,7 +90,6 @@ def draw_static_screen(li):
     screen.blit(title, (MID_W - title_w // 2, MID_H - title_h // 2))
     screen.blit(subtitle, (MID_W - subtitle_w // 2, MID_H + title_h // 2))
 
-
 def draw_lines():
     start_y = MID_H - (REL_SIZE * 4)
     end_y = MID_H + (REL_SIZE * 3)
@@ -97,7 +100,6 @@ def draw_lines():
         pygame.draw.line(screen, WHITE, (MID_W // 2, y), (MID_W // 2, y + dot_size))
         pygame.draw.line(screen, WHITE, (MID_W + MID_W // 2, y), (MID_W + MID_W // 2, y + dot_size))
         y += dot_size + dot_space
-
 
 def draw_game():
     screen.fill(BLACK)
@@ -111,13 +113,39 @@ def draw_game():
     else:
         pygame.draw.polygon(screen, WHITE, player_l)
 
+def handle_shooting():
+    global bullets, direction, score, life, combo, shot_timer
+
+    keys = pygame.key.get_pressed()
+
+    if (keys[pygame.K_a] or keys[pygame.K_d]) and shot_timer <= 0:
+        player_position = player_l[1] if keys[pygame.K_a] else player_r[1]
+        direction_of_bullet = -1 if keys[pygame.K_a] else 1
+        bullets.append((player_position[0], player_position[1], direction_of_bullet))
+        scoring_sound_effect.play()
+        shot_timer = 90  # 1,5 segundos a 60 FPS
+    #time
+    if shot_timer > 0:
+        shot_timer -= 1
+
+    # update posiotion bullet
+    new_bullets = []
+    for bullet in bullets:
+        bx, by, dir = bullet
+        bx += 5 * dir
+        by = max(MID_H - (REL_SIZE * 4), min(MID_H + (REL_SIZE * 3), by))
+        new_bullets.append((bx, by, dir))
+
+    # remove bullet (ultrapassar a linha tracejada)
+    bullets = [(bx, by, dir) for bx, by, dir in new_bullets if
+               MID_H - (REL_SIZE * 4) <= by <= MID_H + (REL_SIZE * 3) and 0 < bx < WIDTH]
 
 # game stats
 running = True
 game_start = False
+desired_direction = None
 
 while running:
-    # event keys
     keys = pygame.key.get_pressed()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -125,19 +153,38 @@ while running:
         elif keys[pygame.K_SPACE]:
             game_start = True
 
+    if desired_direction is not None:
+        direction = desired_direction
+
     if game_start:
         draw_game()
         wave = 1
         draw_hud(score, life, wave, combo)
-        # player movements
-        if keys[pygame.K_LEFT]:
-            direction = 1
-        if keys[pygame.K_RIGHT]:
-            direction = 0
+        handle_shooting()
+
+        new_bullets = []
+        for bullet in bullets:
+            if 0 < bullet[0] < WIDTH:
+                bullet_y = max(MID_H - (REL_SIZE * 4), min(MID_H + (REL_SIZE * 3), bullet[1]))
+                if MID_H - (REL_SIZE * 4) <= bullet_y <= MID_H + (REL_SIZE * 3):
+                    pygame.draw.circle(screen, WHITE, (int(bullet[0]), int(bullet_y)), 5)
+                    new_bullets.append((bullet[0], bullet_y, bullet[2]))
+        bullets = new_bullets
+
+
+        #movement
+        if keys[pygame.K_a]:
+            desired_direction = 1
+        elif keys[pygame.K_d]:
+            desired_direction = 0
+        else:
+            desired_direction = None
+
         # player's death
         if life <= 0:
             game_start = False
             death_sound_effect.play()
+
     elif life <= 0:
         draw_static_screen(life)
         if keys[pygame.K_SPACE]:
