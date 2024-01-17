@@ -1,49 +1,13 @@
 import pygame
-import random
 import sys
-
-pygame.init()
-pygame.font.init()
-
-# Colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-
-# Screen settings
-WIDTH = 1200
-HEIGHT = 700
-MID_W = WIDTH // 2
-MID_H = HEIGHT // 2
-REL_SIZE = 40
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Triangular Assault")
-
-# Fonts
-hud_font = pygame.font.Font('assets/VCR_OSD_MONO_1.001.ttf', 40)
-screen_font = pygame.font.SysFont('Arial', 30)
-screen_font_bold = pygame.font.SysFont('Arial Bold', 120)
-
-# Sound effects
-bounce_sound_effect = pygame.mixer.Sound('assets/bounce.wav')
-scoring_sound_effect = pygame.mixer.Sound('assets/scoring-sound.wav')
-death_sound_effect = pygame.mixer.Sound('assets/explode.ogg')
-
-# Player
-direction = 0
-player_r = (
-    (MID_W - REL_SIZE, MID_H - REL_SIZE),
-    (MID_W + REL_SIZE // 2, MID_H),
-    (MID_W - REL_SIZE, MID_H + REL_SIZE)
-)
-player_l = (
-    (MID_W + REL_SIZE, MID_H + REL_SIZE),
-    (MID_W - REL_SIZE // 2, MID_H),
-    (MID_W + REL_SIZE, MID_H - REL_SIZE)
-)
-
-# Walls
-topper = pygame.Rect(0, MID_H - (REL_SIZE * 4), WIDTH, REL_SIZE)
-bottom = pygame.Rect(0, MID_H + (REL_SIZE * 3), WIDTH, REL_SIZE)
+import random
+from styles import BLACK, WHITE
+from screen_settings import screen, MID_W
+from scenario import draw_lines, topper, bottom
+from player import player_r, player_l, direction
+from sfx import damage_sound_effect, shoot_sound_effect
+from hud import draw_hud
+from static_screen import draw_static_screen
 
 # Initial HUD stats
 score = 0
@@ -51,55 +15,50 @@ life = 3
 wave = 0
 combo = 0
 
-# Variable trigger control
+# shoot boundary
+l_range = MID_W // 2
+r_range = MID_W + MID_W // 2
+
+# Variable trigger controls for handle_shoot()
 bullets = []
-move_left = False
 shot_timer = 0
-shot_delay = 90  # 1.5 segundos a 60 FPS
+shot_delay = 90  # 1.5 sec at 60fps
 last_shot_time = 0
+
 
 def update_screen():
     pygame.display.flip()
     pygame.time.Clock().tick(60)
 
-def draw_hud(n_score, n_life, n_wave, n_combo):
-    score_text = hud_font.render(f'SCORE: {n_score}', True, WHITE, BLACK)
-    life_text = hud_font.render(f'LIFE: {n_life}', True, WHITE, BLACK)
-    wave_text = hud_font.render(f'WAVE: {n_wave}', True, WHITE, BLACK)
-    combo_text = hud_font.render(f'COMBO: {n_combo}', True, WHITE, BLACK)
-    screen.blit(score_text, (20, 10))
-    screen.blit(life_text, (WIDTH - 200, 10))
-    screen.blit(combo_text, (20, 50))
-    screen.blit(wave_text, (MID_W - 80, 10))
 
-def draw_static_screen(li):
-    # Covers game drawing
-    screen.fill(BLACK, (0, MID_H - (REL_SIZE * 4), WIDTH, MID_H))
-    # Title
-    title_txt = 'GAME OVER' if li <= 0 else 'TRIANGULAR ASSAULT'
-    title = screen_font_bold.render(title_txt, True, WHITE, BLACK)
-    title_w = title.get_width()
-    title_h = title.get_height()
+def handle_shoot():
+    global bullets, shot_timer, shot_delay, last_shot_time
+    key = pygame.key.get_pressed()
 
-    # Subtitle
-    subtitle_txt = "To play again press 'space'" if li <= 0 else "To play press 'space'"
-    subtitle = screen_font.render(subtitle_txt, True, WHITE, BLACK)
-    subtitle_w = subtitle.get_width()
+    if (key[pygame.K_a] or key[pygame.K_d]) and shot_timer <= 0:
+        current_time = pygame.time.get_ticks()
+        # Checks if the last shot was more than 1.5 seconds ago or if the player pressed the keys quickly
+        if current_time - last_shot_time >= shot_delay or shot_timer == 0:
+            player_position = player_l[1] if key[pygame.K_a] else player_r[1]
+            direction_of_bullet = -1 if key[pygame.K_a] else 1
+            initial_bul_pos = (player_position[0], player_position[1], direction_of_bullet)
+            bullets.append(initial_bul_pos)
+            shot_timer = 90
+            last_shot_time = current_time
+            shoot_sound_effect.play()
+    new_bullets = []
+    for bullet in bullets:
+        bx, by, dir = bullet
+        bx += 5 * dir
+        # checks collision with the left and right dashed line
+        if l_range <= bx <= r_range:
+            new_bullets.append((bx, by, dir))
+    # Update the bullet
+    bullets = new_bullets
+    # Time
+    if shot_timer > 0:
+        shot_timer -= 1
 
-    # Draw title and subtitle
-    screen.blit(title, (MID_W - title_w // 2, MID_H - title_h // 2))
-    screen.blit(subtitle, (MID_W - subtitle_w // 2, MID_H + title_h // 2))
-
-def draw_lines():
-    start_y = MID_H - (REL_SIZE * 4)
-    end_y = MID_H + (REL_SIZE * 3)
-    dot_size = 10
-    dot_space = 5
-    y = start_y
-    while y < end_y:
-        pygame.draw.line(screen, WHITE, (MID_W // 2, y), (MID_W // 2, y + dot_size))
-        pygame.draw.line(screen, WHITE, (MID_W + MID_W // 2, y), (MID_W + MID_W // 2, y + dot_size))
-        y += dot_size + dot_space
 
 def draw_game():
     screen.fill(BLACK)
@@ -112,45 +71,10 @@ def draw_game():
         pygame.draw.polygon(screen, WHITE, player_r)
     else:
         pygame.draw.polygon(screen, WHITE, player_l)
-
-def handle_shooting():
-    global bullets, direction, score, life, combo, shot_timer, shot_delay, last_shot_time
-
-    keys = pygame.key.get_pressed()
-
-    if (keys[pygame.K_a] or keys[pygame.K_d]) and shot_timer <= 0:
-        current_time = pygame.time.get_ticks()
-
-        # Verifica se o último disparo foi há mais de 1.5 segundos ou se o jogador pressionou rapidamente as teclas
-        if current_time - last_shot_time >= shot_delay or shot_timer == 0:
-            player_position = player_l[1] if keys[pygame.K_a] else player_r[1]
-            direction_of_bullet = -1 if keys[pygame.K_a] else 1
-            bullets.append((player_position[0], player_position[1], direction_of_bullet))
-            scoring_sound_effect.play()
-            shot_timer = 90
-            last_shot_time = current_time
-    new_bullets = []
+    # Draw bullets
     for bullet in bullets:
-        bx, by, dir = bullet
-        bx += 5 * dir
-        by = max(MID_H - (REL_SIZE * 4), min(MID_H + (REL_SIZE * 3), by))
+        pygame.draw.circle(screen, WHITE, (int(bullet[0]), int(bullet[1])), 10)
 
-        # Check for collision with the top and bottom dashed lines
-        top_line_y = MID_H - (REL_SIZE * 4)
-        bottom_line_y = MID_H + (REL_SIZE * 3)
-        if top_line_y <= by <= bottom_line_y:
-            # Check for collision with the left dashed line
-            left_line_x = MID_W // 2
-            # Check for collision with the right dashed line
-            right_line_x = MID_W + MID_W // 2
-            if left_line_x <= bx <= right_line_x:
-                new_bullets.append((bx, by, dir))
-
-    # Update the bullet
-    bullets = new_bullets
-    # Time
-    if shot_timer > 0:
-        shot_timer -= 1
 
 # Game stats
 running = True
@@ -172,10 +96,7 @@ while running:
         draw_game()
         wave = 1
         draw_hud(score, life, wave, combo)
-        handle_shooting()
-        for bullet in bullets:
-            pygame.draw.circle(screen, WHITE, (int(bullet[0]), int(bullet[1])), 5)
-
+        handle_shoot()
         # Player movement
         if keys[pygame.K_a]:
             desired_direction = 1
@@ -183,12 +104,10 @@ while running:
             desired_direction = 0
         else:
             desired_direction = None
-
         # Player death
         if life <= 0:
             game_start = False
-            death_sound_effect.play()
-
+            damage_sound_effect.play()
     elif life <= 0:
         draw_static_screen(life)
         if keys[pygame.K_SPACE]:
