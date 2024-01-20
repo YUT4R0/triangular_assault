@@ -67,6 +67,8 @@ miss = False
 # shoot boundary
 l_range = MID_W // 2
 r_range = 3 * MID_W // 2
+# game speed
+mov_speed = 10
 
 
 def handle_shoot():
@@ -89,7 +91,7 @@ def handle_shoot():
     new_bullets = []
     for bullet in bullets:
         bx, by, dir = bullet
-        bx += 15 * dir
+        bx += 3 * mov_speed * dir
         # checks collision with the left and right dashed line
         if l_range <= bx <= r_range:
             new_bullets.append((bx, by, dir))
@@ -109,7 +111,6 @@ enemy_dimension = (2 * REL_SIZE, 2 * REL_SIZE)
 spawn_delay = 120
 spawn_delay_max = 60
 spawn_timer = 0
-movement_speed = 8
 
 
 def handle_damage(player_dir, enemy, tp_en, tp_en_dir, i):
@@ -171,7 +172,7 @@ def handle_enemies():
     # Update enemy
     if wave_start:
         for enemy in enemies:
-            enemy[0] += movement_speed * enemies_direction[enemies.index(enemy)]
+            enemy[0] += mov_speed * enemies_direction[enemies.index(enemy)]
             # check bullet miss
             if (enemy[0] + enemy[3] < MID_W // 2 or enemy[0] > 3 * MID_W // 2) and shot:
                 miss = True
