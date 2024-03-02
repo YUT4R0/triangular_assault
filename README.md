@@ -30,4 +30,4 @@ Triangular Assault is a top-down view game where you control a triangle tasked w
 
 ## Credits
 
-This game was created by Me, Lucas Lima and more as a fun project.
+This game was created by Me and my university mates as a fun project.
