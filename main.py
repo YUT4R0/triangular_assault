@@ -172,7 +172,7 @@ def handle_enemies():
     # Update enemy
     if wave_start:
         for enemy in enemies:
-            enemy[0] += mov_speed * enemies_direction[enemies.index(enemy)]
+            enemy[0] += (mov_speed + 25) * enemies_direction[enemies.index(enemy)]
             # check bullet miss
             if (enemy[0] + enemy[3] < MID_W // 2 or enemy[0] > 3 * MID_W // 2) and shot:
                 miss = True
