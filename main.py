@@ -70,17 +70,18 @@ l_range = MID_W // 2
 r_range = 3 * MID_W // 2
 # game speed
 mov_speed = 10
+can_shoot = True
 
 
 def handle_shoot():
-    global bullets, shot_timer, shot_delay, miss, shot
+    global bullets, shot_timer, shot_delay, miss, shot, can_shoot
     shot = False
     key = pygame.key.get_pressed()
 
     if key[pygame.K_a] or key[pygame.K_d]:
         player_position = player_l[1] if key[pygame.K_a] else player_r[1]
         # Checks if the last shot was more than 1.5 seconds ago or if the player pressed the keys quickly
-        if shot_timer == 0:
+        if shot_timer == 0 and can_shoot:
             shot = True
             direction_of_bullet = -1 if key[pygame.K_a] else 1
             initial_bul_pos = (player_position[0], player_position[1], direction_of_bullet)
@@ -89,6 +90,7 @@ def handle_shoot():
                 miss = False
             shot_timer = 10
             shoot_sound_effect.play()
+            can_shoot = False
     new_bullets = []
     for bullet in bullets:
         bx, by, dir = bullet
@@ -101,6 +103,9 @@ def handle_shoot():
     # Time
     if shot_timer > 0:
         shot_timer -= 1
+    # handle key held
+    if not (key[pygame.K_a] or key[pygame.K_d]):
+        can_shoot = True
 
 
 # Enemies
@@ -174,7 +179,7 @@ def handle_enemies():
     # Update enemy
     if wave_start:
         for enemy in enemies:
-            enemy[0] += (mov_speed + a) * enemies_direction[enemies.index(enemy)]
+            enemy[0] += (mov_speed + enemy_speed_factor) * enemies_direction[enemies.index(enemy)]
             # check bullet miss
             if (enemy[0] + enemy[3] < MID_W // 2 or enemy[0] > 3 * MID_W // 2) and shot:
                 miss = True
@@ -251,7 +256,7 @@ def draw_game():
         title_h = title.get_height()
 
         # Subtitle
-        subtitle_txt = "To play again press 'space'" if life <= 0 else "To play press 'space'"
+        subtitle_txt = "Not bad... Press 'start' to play again" if life <= 0 else "Press 'space' to play"
         subtitle = screen_font.render(subtitle_txt, True, WHITE, BLACK)
         subtitle_w = subtitle.get_width()
 
