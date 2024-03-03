@@ -1,6 +1,7 @@
 import pygame
 import random
 import sys
+import asyncio
 
 pygame.init()
 pygame.font.init()
@@ -111,6 +112,7 @@ enemy_dimension = (2 * REL_SIZE, 2 * REL_SIZE)
 spawn_delay = 120
 spawn_delay_max = 60
 spawn_timer = 0
+enemy_speed_factor = 0
 
 
 def handle_damage(player_dir, enemy, tp_en, tp_en_dir, i):
@@ -172,7 +174,7 @@ def handle_enemies():
     # Update enemy
     if wave_start:
         for enemy in enemies:
-            enemy[0] += (mov_speed + 25) * enemies_direction[enemies.index(enemy)]
+            enemy[0] += (mov_speed + a) * enemies_direction[enemies.index(enemy)]
             # check bullet miss
             if (enemy[0] + enemy[3] < MID_W // 2 or enemy[0] > 3 * MID_W // 2) and shot:
                 miss = True
@@ -182,12 +184,14 @@ def handle_enemies():
 
 
 def handle_waves():
-    global wave_start, wave, wave_enemies, spawn_delay, spawned_enemies, wave_timer
+    global wave_start, wave, wave_enemies, spawn_delay, spawned_enemies, wave_timer, enemy_speed_factor
     # Start a new wave if conditions are met
     if not wave_start:
         if wave_timer == 0:
             wave_start = True
             wave += 1
+            if enemy_speed_factor <= 30:
+                enemy_speed_factor += 2
             wave_enemies = 2 + wave * 2
             spawned_enemies = 0
             wave_sound_effect.play()
@@ -261,46 +265,53 @@ running = True
 game_start = False
 desired_direction = None
 
-while running:
-    keys = pygame.key.get_pressed()
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif keys[pygame.K_SPACE]:
-            if not game_start:
-                game_start = True
-                score = 0
-                combo = 0
-                wave = 1
-                life = 3
 
-    if desired_direction is not None:
-        direction = desired_direction
+async def main():
+    global running, game_start, score, combo, life, wave, desired_direction, direction
+    while running:
+        keys = pygame.key.get_pressed()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+            elif keys[pygame.K_SPACE]:
+                if not game_start:
+                    game_start = True
+                    score = 0
+                    combo = 0
+                    wave = 1
+                    life = 3
 
-    if game_start:
-        handle_shoot()
-        handle_waves()
-        if wave_start:
-            handle_enemies()
+        if desired_direction is not None:
+            direction = desired_direction
 
-        # Player movement
-        if keys[pygame.K_a]:
-            desired_direction = 1
-        elif keys[pygame.K_d]:
-            desired_direction = 0
-        else:
-            desired_direction = None
+        if game_start:
+            handle_shoot()
+            handle_waves()
+            if wave_start:
+                handle_enemies()
 
-        # Player death
-        if life <= 0:
-            game_start = False
-            damage_sound_effect.play()
-    # Draw
-    draw_game()
+            # Player movement
+            if keys[pygame.K_a]:
+                desired_direction = 1
+            elif keys[pygame.K_d]:
+                desired_direction = 0
+            else:
+                desired_direction = None
 
-    # update screen
-    pygame.display.flip()
-    pygame.time.Clock().tick(60)
+            # Player death
+            if life <= 0:
+                game_start = False
+                damage_sound_effect.play()
+        # Draw
+        draw_game()
 
-pygame.quit()
-sys.exit()
+        # update screen
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
+        await asyncio.sleep(0)
+
+asyncio.run(main())
