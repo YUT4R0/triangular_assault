@@ -1,6 +1,7 @@
 # Triangular Assault
 
 Triangular Assault is a top-down view game where you control a triangle tasked with defending itself against incoming enemies. The objective is to survive as long as possible by shooting down enemies approaching from the left and right sides of the screen.
+
 In this game, the pace at which enemies appear on the screen accelerates as the score increases and their speed increases as the waves advance, making the player always remain focused on hitting the right timing of the attack to increase their score without losing their life points.
 ## Gameplay
 
