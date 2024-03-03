@@ -210,13 +210,15 @@ def draw_game():
     screen.fill(BLACK)
     # Draw hud
     score_text = hud_font.render(f'SCORE: {score}', True, WHITE, BLACK)
-    life_text = hud_font.render(f'LIFE: {life}', True, WHITE, BLACK)
-    wave_text = hud_font.render(f'WAVE: {wave}', True, WHITE, BLACK)
     combo_text = hud_font.render(f'COMBO: {combo}', True, WHITE, BLACK)
+    wave_text = hud_font.render(f'WAVE: {wave}', True, WHITE, BLACK)
+    delay_text = hud_font.render(f'DELAY: {shot_timer}', True, WHITE, BLACK)
+    life_text = hud_font.render(f'LIFE: {life}', True, WHITE, BLACK)
     screen.blit(score_text, (20, 10))
-    screen.blit(life_text, (WIDTH - 200, 10))
     screen.blit(combo_text, (20, 50))
     screen.blit(wave_text, (MID_W - 80, 10))
+    screen.blit(delay_text, (MID_W - 80, 50))
+    screen.blit(life_text, (WIDTH - 200, 10))
 
     if game_start:
         # Draw scenario
@@ -256,7 +258,7 @@ def draw_game():
         title_h = title.get_height()
 
         # Subtitle
-        subtitle_txt = "Not bad... Press 'start' to play again" if life <= 0 else "Press 'space' to play"
+        subtitle_txt = "Not bad... Press 'start' to play again x_x" if life <= 0 else "Press 'space' to play :)"
         subtitle = screen_font.render(subtitle_txt, True, WHITE, BLACK)
         subtitle_w = subtitle.get_width()
 
